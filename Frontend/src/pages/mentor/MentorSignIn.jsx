@@ -41,7 +41,7 @@ const MentorSignIn = () => {
       if (data.success) {
         localStorage.setItem('mentorToken', data.token)
         localStorage.setItem('userType', 'mentor')
-        navigate('/mentor/profile')
+        navigate('/mentor/dashboard')
       } else {
         setSigninError(data.msg || 'Login failed')
       }

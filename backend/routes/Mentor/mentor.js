@@ -360,4 +360,142 @@ app.get('/name/:token',async (req,res)=>{
 
 })
 
+// Get all mentors with their expertise tags
+app.get('/all', async (req, res) => {
+    try {
+        const mentors = await prisma.teacher.findMany({
+            include: {
+                expertises: true
+            },
+            where: {
+                bio: {
+                    not: null
+                },
+                sebi_id: {
+                    not: null
+                }
+            }
+        })
+
+        res.json({
+            success: true,
+            msg: "Mentors fetched successfully",
+            mentors: mentors
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success: false,
+            msg: "Something went wrong"
+        })
+    }
+})
+
+// Get mentors by expertise tags
+app.get('/by-tags/:tags', async (req, res) => {
+    try {
+        const { tags } = req.params
+        const tagArray = tags.split(',')
+
+        const mentors = await prisma.teacher.findMany({
+            include: {
+                expertises: true
+            },
+            where: {
+                bio: {
+                    not: null
+                },
+                sebi_id: {
+                    not: null
+                },
+                expertises: {
+                    some: {
+                        name: {
+                            in: tagArray
+                        }
+                    }
+                }
+            }
+        })
+
+        res.json({
+            success: true,
+            msg: "Mentors fetched successfully",
+            mentors: mentors
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success: false,
+            msg: "Something went wrong"
+        })
+    }
+})
+
+// Get sessions for a specific mentor
+app.get('/sessions/:id', async (req, res) => {
+    try {
+        const { id } = req.params
+
+        const sessions = await prisma.session.findMany({
+            where: {
+                teacherId: id,
+                startTime: {
+                    gte: new Date() // Only future sessions
+                }
+            },
+            orderBy: {
+                startTime: 'asc'
+            }
+        })
+
+        res.json({
+            success: true,
+            msg: "Sessions fetched successfully",
+            sessions: sessions
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success: false,
+            msg: "Something went wrong"
+        })
+    }
+})
+
+// Get mentor by ID
+app.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params
+
+        const mentor = await prisma.teacher.findUnique({
+            where: {
+                id: id
+            },
+            include: {
+                expertises: true
+            }
+        })
+
+        if (!mentor) {
+            return res.json({
+                success: false,
+                msg: "Mentor not found"
+            })
+        }
+
+        res.json({
+            success: true,
+            msg: "Mentor fetched successfully",
+            mentor: mentor
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success: false,
+            msg: "Something went wrong"
+        })
+    }
+})
+
 module.exports=app

@@ -1,48 +1,78 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import backgroundImage from '../../assets/image.png'
 
 const InvestorDashboard = () => {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilters, setSelectedFilters] = useState([])
+  const [mentors, setMentors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const API_BASE_URL = 'http://localhost:8000/api'
 
   const filterCategories = [
-    { id: 'stocks', name: 'Stocks', icon: '📈' },
-    { id: 'mutual-funds', name: 'Mutual Funds', icon: '📊' },
-    { id: 'ipos', name: 'IPOS', icon: '🚀' },
-    { id: 'crypto', name: 'Crypto', icon: '₿' }
+    { id: 'Stocks', name: 'Stocks', icon: '📈' },
+    { id: 'Mutual Funds', name: 'Mutual Funds', icon: '📊' },
+    { id: 'IPOS', name: 'IPOS', icon: '🚀' },
+    { id: 'Crypto', name: 'Crypto', icon: '₿' },
+    { id: 'ETFs', name: 'ETFs', icon: '💼' },
+    { id: 'Options', name: 'Options', icon: '⚡' },
+    { id: 'Forex', name: 'Forex', icon: '💱' }
   ]
 
-  const mentors = [
-    {
-      id: 1,
-      name: 'Dr. Anya Sharra',
-      title: 'Investment Strategist',
-      avatar: '👩‍💼',
-      expertise: ['Stocks', 'ETFs'],
-      description: 'Helps new investors build tad diversified erolas yet portfolis...',
-      rating: 4.9
-    },
-    {
-      id: 2,
-      name: 'Dr. Anya Sharra',
-      title: 'Investment Strategist',
-      avatar: '👨‍💼',
-      expertise: ['Stocks', 'ETFs'],
-      description: 'Helps new investors build build diversified proas yen portfolis...',
-      rating: 4.8
-    },
-    {
-      id: 3,
-      name: 'Sve Schiial',
-      title: 'Email Menseich',
-      avatar: '👨‍💼',
-      expertise: ['IPOS', 'ETFs'],
-      description: 'Helps new investors build tuild diversified erolas yet portfolis...',
-      rating: 4.7
+  // Fetch mentors on component mount
+  useEffect(() => {
+    fetchMentors()
+  }, [])
+
+  // Fetch mentors based on selected filters
+  useEffect(() => {
+    if (selectedFilters.length > 0) {
+      fetchMentorsByTags()
+    } else {
+      fetchMentors()
     }
-  ]
+  }, [selectedFilters])
+
+  const fetchMentors = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/mentor/all`)
+      if (data.success) {
+        setMentors(data.mentors)
+      } else {
+        setError('Failed to fetch mentors')
+      }
+    } catch (error) {
+      console.error('Error fetching mentors:', error)
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchMentorsByTags = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const tags = selectedFilters.join(',')
+      const { data } = await axios.get(`${API_BASE_URL}/mentor/by-tags/${tags}`)
+      if (data.success) {
+        setMentors(data.mentors)
+      } else {
+        setError('Failed to fetch mentors')
+      }
+    } catch (error) {
+      console.error('Error fetching mentors by tags:', error)
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value)
@@ -93,17 +123,6 @@ const InvestorDashboard = () => {
             <div className="filter-sidebar">
               <h3 className="filter-title">Filter by Expertise</h3>
               
-              {/* Search Bar */}
-              <div className="search-container">
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="search-input"
-                />
-                <div className="search-icon">🔍</div>
-              </div>
 
               {/* Filter Categories */}
               <div className="filter-categories">
@@ -122,33 +141,47 @@ const InvestorDashboard = () => {
 
             {/* Mentors Grid */}
             <div className="mentors-section">
-              <div className="mentors-grid">
-                {mentors.map((mentor) => (
-                  <div key={mentor.id} className="mentor-card">
-                    <div className="mentor-avatar">
-                      <div className="avatar-circle">
-                        <span className="avatar-emoji">{mentor.avatar}</span>
+              {error && <div className="error-message">{error}</div>}
+              {loading ? (
+                <div className="loading-message">Loading mentors...</div>
+              ) : (
+                <div className="mentors-grid">
+                  {mentors.length === 0 ? (
+                    <div className="no-mentors">No mentors found matching your criteria.</div>
+                  ) : (
+                    mentors.map((mentor) => (
+                      <div key={mentor.id} className="mentor-card">
+                        <div className="mentor-avatar">
+                          <div className="avatar-circle">
+                            <span className="avatar-emoji">👨‍💼</span>
+                          </div>
+                        </div>
+                        <div className="mentor-info">
+                          <h4 className="mentor-name">{mentor.name}</h4>
+                          <p className="mentor-title">Investment Mentor</p>
+                          <div className="mentor-expertise">
+                            {mentor.expertises?.map((expertise, index) => (
+                              <span key={index} className="expertise-tag">{expertise.name}</span>
+                            ))}
+                          </div>
+                          <p className="mentor-description">
+                            {mentor.bio || 'Experienced investment mentor ready to help you grow your portfolio.'}
+                          </p>
+                          <div className="mentor-sebi">
+                            <strong>SEBI ID:</strong> {mentor.sebi_id}
+                          </div>
+                          <button 
+                            onClick={() => handleViewProfile(mentor.id)}
+                            className="view-profile-btn"
+                          >
+                            View Profile
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mentor-info">
-                      <h4 className="mentor-name">{mentor.name}</h4>
-                      <p className="mentor-title">{mentor.title}</p>
-                      <div className="mentor-expertise">
-                        {mentor.expertise.map((skill, index) => (
-                          <span key={index} className="expertise-tag">{skill}</span>
-                        ))}
-                      </div>
-                      <p className="mentor-description">{mentor.description}</p>
-                      <button 
-                        onClick={() => handleViewProfile(mentor.id)}
-                        className="view-profile-btn"
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -391,6 +424,32 @@ const InvestorDashboard = () => {
           font-size: 0.875rem;
         }
 
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          text-align: center;
+        }
+
+        .loading-message {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+          font-size: 1.1rem;
+        }
+
+        .no-mentors {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+          font-size: 1.1rem;
+          background: #f9fafb;
+          border-radius: 8px;
+        }
+
         /* Mentors Section */
         .mentors-grid {
           display: grid;
@@ -480,8 +539,17 @@ const InvestorDashboard = () => {
           color: #6b7280;
           font-size: 0.85rem;
           line-height: 1.6;
-          margin-bottom: 1.8rem;
+          margin-bottom: 1rem;
           min-height: 60px;
+        }
+
+        .mentor-sebi {
+          color: #374151;
+          font-size: 0.8rem;
+          margin-bottom: 1.5rem;
+          padding: 0.5rem;
+          background: #f3f4f6;
+          border-radius: 6px;
         }
 
         .view-profile-btn {

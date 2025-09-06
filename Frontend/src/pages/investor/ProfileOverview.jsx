@@ -1,31 +1,56 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import backgroundImage from '../../assets/image.png'
 
 const ProfileOverview = () => {
   const { mentorId } = useParams()
   const navigate = useNavigate()
+  
+  const [mentor, setMentor] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  // Mock mentor data - in real app this would come from API
-  const mentor = {
-    id: mentorId || 1,
-    name: 'Dr. Anya Sharra',
-    title: 'Investment Strategist',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80',
-    expertise: ['Stocks', 'ETFs', 'Mutual', 'Funds'],
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
-    upcomingSessions: [
-      {
-        title: 'Advanced ETF Strategies',
-        date: 'Dec 10, 2024 at 7:00 PM EST',
-        type: 'live'
-      },
-      {
-        title: 'Mutual Fund Deep Dive',
-        date: 'Dec 15, 2024 at 6:30 PM EST',
-        type: 'live'
+  const API_BASE_URL = 'http://localhost:8000/api'
+
+  // Fetch mentor data on component mount
+  useEffect(() => {
+    fetchMentorData()
+  }, [mentorId])
+
+  const fetchMentorData = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      // Fetch mentor details
+      const mentorResponse = await axios.get(`${API_BASE_URL}/mentor/${mentorId}`)
+      
+      if (mentorResponse.data.success) {
+        const mentorData = mentorResponse.data.mentor
+        
+        // Fetch mentor's live sessions
+        try {
+          const sessionsResponse = await axios.get(`${API_BASE_URL}/mentor/sessions/${mentorId}`)
+          if (sessionsResponse.data.success) {
+            mentorData.upcomingSessions = sessionsResponse.data.sessions
+          } else {
+            mentorData.upcomingSessions = []
+          }
+        } catch (sessionError) {
+          console.warn('Could not fetch sessions:', sessionError)
+          mentorData.upcomingSessions = []
+        }
+        
+        setMentor(mentorData)
+      } else {
+        setError(mentorResponse.data.msg || 'Mentor not found')
       }
-    ]
+    } catch (error) {
+      console.error('Error fetching mentor:', error)
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleJoinSession = (session) => {
@@ -34,6 +59,42 @@ const ProfileOverview = () => {
 
   const handleBookSession = () => {
     navigate(`/investor/booking/${mentorId}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="profile-overview">
+        <div className="loading-container">
+          <div className="loading-message">Loading mentor profile...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="profile-overview">
+        <div className="error-container">
+          <div className="error-message">{error}</div>
+          <button onClick={() => navigate('/investor/dashboard')} className="back-btn">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!mentor) {
+    return (
+      <div className="profile-overview">
+        <div className="error-container">
+          <div className="error-message">Mentor not found</div>
+          <button onClick={() => navigate('/investor/dashboard')} className="back-btn">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -46,7 +107,7 @@ const ProfileOverview = () => {
             <span className="logo-text">FinanceFlow</span>
           </Link>
           <nav className="nav-menu">
-            <a href="#santors" className="nav-link">Santors</a>
+            <Link to="/investor/dashboard" className="nav-link">Dashboard</Link>
             <a href="#my-sessions" className="nav-link">My Sessions</a>
             <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
           </nav>
@@ -60,22 +121,27 @@ const ProfileOverview = () => {
             {/* Left Side - Profile Info */}
             <div className="profile-info">
               <div className="mentor-avatar">
-                <img src={mentor.avatar} alt={mentor.name} className="avatar-image" />
+                <div className="avatar-placeholder">👨‍💼</div>
               </div>
               
               <div className="mentor-details">
                 <h1 className="mentor-name">{mentor.name}</h1>
-                <p className="mentor-title">{mentor.title}</p>
+                <p className="mentor-title">Investment Mentor</p>
                 
                 <div className="expertise-tags">
-                  {mentor.expertise.map((skill, index) => (
-                    <span key={index} className="expertise-tag">{skill}</span>
+                  {mentor.expertises?.map((expertise, index) => (
+                    <span key={index} className="expertise-tag">{expertise.name}</span>
                   ))}
                 </div>
 
                 <div className="about-section">
                   <h3>About Me</h3>
-                  <p>{mentor.description}</p>
+                  <p>{mentor.bio || 'Experienced investment mentor ready to help you grow your portfolio.'}</p>
+                </div>
+                
+                <div className="sebi-section">
+                  <h3>SEBI Registration</h3>
+                  <p><strong>SEBI ID:</strong> {mentor.sebi_id}</p>
                 </div>
               </div>
             </div>
@@ -106,21 +172,30 @@ const ProfileOverview = () => {
                 <h3>Upcoming Live Sessions</h3>
                 
                 <div className="sessions-list">
-                  {mentor.upcomingSessions.map((session, index) => (
-                    <div key={index} className="session-item">
-                      <div className="session-info">
-                        <h4 className="session-title">{session.title}</h4>
-                        <p className="session-date">{session.date}</p>
+                  {mentor.upcomingSessions && mentor.upcomingSessions.length > 0 ? (
+                    mentor.upcomingSessions.map((session, index) => (
+                      <div key={session.id || index} className="session-item">
+                        <div className="session-info">
+                          <h4 className="session-title">{session.title}</h4>
+                          <p className="session-date">
+                            {new Date(session.startTime).toLocaleDateString()} at {new Date(session.startTime).toLocaleTimeString()}
+                          </p>
+                          <p className="session-description">{session.description}</p>
+                        </div>
+                        <button 
+                          className="join-session-btn"
+                          onClick={() => handleJoinSession(session)}
+                        >
+                          Join Session
+                        </button>
+                        <div className="session-arrow">›</div>
                       </div>
-                      <button 
-                        className="join-session-btn"
-                        onClick={() => handleJoinSession(session)}
-                      >
-                        Join Session
-                      </button>
-                      <div className="session-arrow">›</div>
+                    ))
+                  ) : (
+                    <div className="no-sessions">
+                      <p>No upcoming live sessions scheduled.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
@@ -163,6 +238,78 @@ const ProfileOverview = () => {
         .profile-overview > * {
           position: relative;
           z-index: 2;
+        }
+
+        .loading-container,
+        .error-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 60vh;
+          text-align: center;
+        }
+
+        .loading-message {
+          font-size: 1.2rem;
+          color: #6b7280;
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 1rem 2rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          font-size: 1rem;
+        }
+
+        .back-btn {
+          background: #059669;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+        }
+
+        .back-btn:hover {
+          background: #047857;
+        }
+
+        .avatar-placeholder {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 3rem;
+          color: white;
+          margin: 0 auto 1.5rem;
+        }
+
+        .sebi-section {
+          margin-top: 1.5rem;
+          padding: 1rem;
+          background: #f3f4f6;
+          border-radius: 8px;
+        }
+
+        .sebi-section h3 {
+          margin: 0 0 0.5rem 0;
+          color: #1f2937;
+          font-size: 1rem;
+        }
+
+        .sebi-section p {
+          margin: 0;
+          color: #374151;
+          font-size: 0.9rem;
         }
 
         /* Header Styles */
@@ -419,6 +566,24 @@ const ProfileOverview = () => {
         .session-date {
           font-size: 0.875rem;
           color: #6b7280;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .session-description {
+          font-size: 0.8rem;
+          color: #9ca3af;
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .no-sessions {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+          font-style: italic;
+        }
+
+        .no-sessions p {
           margin: 0;
         }
 
