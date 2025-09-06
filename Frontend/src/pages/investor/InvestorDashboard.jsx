@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import backgroundImage from '../../assets/image.png'
 
 const InvestorDashboard = () => {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilters, setSelectedFilters] = useState([])
 
@@ -56,12 +57,9 @@ const InvestorDashboard = () => {
   }
 
   const handleViewProfile = (mentorId) => {
-    console.log('View profile for mentor:', mentorId)
+    navigate(`/investor/profile-overview/${mentorId}`)
   }
 
-  const handleSaveChanges = () => {
-    console.log('Save changes clicked')
-  }
 
   return (
     <div className="investor-dashboard">
@@ -154,12 +152,6 @@ const InvestorDashboard = () => {
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="save-section">
-            <button onClick={handleSaveChanges} className="save-changes-btn">
-              Save Changes
-            </button>
-          </div>
         </div>
       </main>
 
@@ -167,10 +159,27 @@ const InvestorDashboard = () => {
         .investor-dashboard {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           min-height: 100vh;
-          background: linear-gradient(135deg, rgba(243, 244, 246, 0.9) 0%, rgba(229, 231, 235, 0.9) 100%), url(${backgroundImage});
+          background: url(${backgroundImage});
           background-size: cover;
           background-position: center;
           background-attachment: fixed;
+          position: relative;
+        }
+
+        .investor-dashboard::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(255, 255, 255, 0.85);
+          z-index: 1;
+        }
+
+        .investor-dashboard > * {
+          position: relative;
+          z-index: 2;
         }
 
         /* Header Styles */
@@ -245,6 +254,27 @@ const InvestorDashboard = () => {
           border-radius: 16px;
           padding: 2rem;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .dashboard-container::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 50%;
+          height: 100%;
+          background: url(${backgroundImage});
+          background-size: cover;
+          background-position: center;
+          opacity: 0.8;
+          z-index: 1;
+        }
+
+        .dashboard-container > * {
+          position: relative;
+          z-index: 2;
         }
 
         /* Hero Section */
@@ -364,43 +394,48 @@ const InvestorDashboard = () => {
         /* Mentors Section */
         .mentors-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns: repeat(3, 1fr);
           gap: 2rem;
+          max-width: 900px;
         }
 
         .mentor-card {
           background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 2rem;
+          border: none;
+          border-radius: 16px;
+          padding: 2rem 1.5rem;
           text-align: center;
           transition: all 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          position: relative;
+          overflow: hidden;
         }
 
         .mentor-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
         }
 
         .mentor-avatar {
           margin-bottom: 1.5rem;
+          position: relative;
         }
 
         .avatar-circle {
-          width: 80px;
-          height: 80px;
+          width: 100px;
+          height: 100px;
           border-radius: 50%;
-          background: #059669;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto;
           border: 4px solid #059669;
+          box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
         }
 
         .avatar-emoji {
-          font-size: 2rem;
+          font-size: 2.5rem;
         }
 
         .mentor-info {
@@ -408,79 +443,68 @@ const InvestorDashboard = () => {
         }
 
         .mentor-name {
-          font-size: 1.25rem;
-          font-weight: bold;
+          font-size: 1.3rem;
+          font-weight: 700;
           color: #1f2937;
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.5rem;
+          line-height: 1.2;
         }
 
         .mentor-title {
           color: #6b7280;
-          font-size: 0.875rem;
-          margin-bottom: 1rem;
+          font-size: 0.9rem;
+          margin-bottom: 1.2rem;
+          font-weight: 500;
         }
 
         .mentor-expertise {
           display: flex;
           justify-content: center;
           gap: 0.5rem;
-          margin-bottom: 1rem;
+          margin-bottom: 1.2rem;
           flex-wrap: wrap;
         }
 
         .expertise-tag {
           background: #059669;
           color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: 12px;
+          padding: 0.4rem 0.8rem;
+          border-radius: 20px;
           font-size: 0.75rem;
-          font-weight: 500;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .mentor-description {
           color: #6b7280;
-          font-size: 0.875rem;
-          line-height: 1.5;
-          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+          line-height: 1.6;
+          margin-bottom: 1.8rem;
+          min-height: 60px;
         }
 
         .view-profile-btn {
           background: #059669;
           color: white;
           border: none;
-          padding: 0.75rem 2rem;
-          border-radius: 8px;
+          padding: 0.8rem 2rem;
+          border-radius: 25px;
           font-weight: 600;
           cursor: pointer;
-          transition: background-color 0.3s ease;
+          transition: all 0.3s ease;
           width: 100%;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .view-profile-btn:hover {
           background: #047857;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
         }
 
-        /* Save Section */
-        .save-section {
-          display: flex;
-          justify-content: center;
-        }
-
-        .save-changes-btn {
-          background: #1e3a8a;
-          color: white;
-          border: none;
-          padding: 1rem 3rem;
-          border-radius: 25px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-        }
-
-        .save-changes-btn:hover {
-          background: #1e40af;
-        }
 
         /* Responsive Design */
         @media (max-width: 768px) {
