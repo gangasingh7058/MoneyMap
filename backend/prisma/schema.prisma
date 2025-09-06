@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+
+  bookings  Booking[]  @relation("StudentBookings")
+}
+
+model Teacher {
+  id          String     @id @default(uuid())
+  name        String
+  email       String     @unique
+  password    String
+  bio         String?
+  introVideo  String?
+  sebi_id     String?
+
+  sessions    LiveSession[]  @relation("TeacherSessions")
+  bookings    Booking[]  @relation("TeacherBookings")
+
+  expertises  TeacherExpertise[] @relation("TeacherExpertises")
+}
+
+model TeacherExpertise {
+  id        String     @id @default(uuid())
+  name      String     @unique
+
+  teachers  Teacher[]  @relation("TeacherExpertises") 
+}
+
+model LiveSession {
+  id          String   @id @default(uuid())
+  teacherId   String
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  isLive      Boolean  @default(false)
+  videoUrl    String?  // recording link
+  createdAt   DateTime @default(now())
+
+  teacher Teacher @relation("TeacherSessions", fields: [teacherId], references: [id])
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  studentId   String
+  teacherId   String
+  sessionId   String?
+  sessionDate DateTime
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  student User     @relation("StudentBookings", fields: [studentId], references: [id])
+  teacher Teacher  @relation("TeacherBookings", fields: [teacherId], references: [id])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
