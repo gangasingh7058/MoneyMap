@@ -7,6 +7,7 @@ import OneToOneBooking from './pages/investor/OneToOneBooking'
 import MentorSignIn from './pages/mentor/MentorSignIn'
 import MentorProfile from './pages/mentor/MentorProfile'
 import MentorDashboard from './pages/mentor/MentorDashboard'
+import VideoConferencePage from './pages/LiveSession/CallPage'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/mentor/signin" element={<MentorSignIn />} />
           <Route path="/mentor/profile" element={<MentorProfile />} />
           <Route path="/mentor/dashboard" element={<MentorDashboard />} />
+          <Route path="/live-session/" element={<VideoConferencePage />} />
         </Routes>
       </Router>
     </div>
