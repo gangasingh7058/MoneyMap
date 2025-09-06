@@ -22,7 +22,7 @@ const MentorSignIn = () => {
       setSigninData(prev => ({ ...prev, [name]: value }))
       if (signinError) setSigninError('')
     } else {
-      setSignupData(prev => ({ ...prev, [name]: value }))
+      setSignupData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
       if (signupError) setSignupError('')
     }
   }
@@ -100,9 +100,6 @@ const MentorSignIn = () => {
             <span className="logo-text">FinanceFlow</span>
           </Link>
           <nav className="nav-menu">
-            <a href="#learn" className="nav-link">Learn</a>
-            <a href="#mentor" className="nav-link">Mentor</a>
-            <a href="#pricing" className="nav-link">Pricing</a>
           </nav>
           <div className="nav-buttons">
             <button className="btn btn-signup" onClick={() => navigate('/mentor/signup')}>Signup</button>
@@ -124,7 +121,6 @@ const MentorSignIn = () => {
                 <input type="password" name="password" placeholder="Password" value={signinData.password} onChange={(e) => handleInputChange(e, 'signin')} className="form-input" required disabled={signinLoading} />
               </div>
               <button type="submit" className="btn btn-login" disabled={signinLoading}>{signinLoading ? 'Signing In...' : 'Login'}</button>
-              <p className="form-footer">Don't have an account? <Link to="/mentor/signup" className="signup-link">Signup here</Link></p>
             </form>
           </div>
 

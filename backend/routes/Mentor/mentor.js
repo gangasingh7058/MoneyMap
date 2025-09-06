@@ -192,12 +192,12 @@ app.post('/live-session',async (req,res)=>{
 
         // register session to database
 
-        const session=await prisma.session.create({
+        const session=await prisma.liveSession.create({
             data:{
                 title:title,
                 description:description,
-                startTime:startTime,
-                endTime:endTime,
+                startTime:new Date(startTime),
+                endTime:new Date(endTime),
                 teacherId:decoded.id
             }
         })
@@ -209,15 +209,14 @@ app.post('/live-session',async (req,res)=>{
         })
 
     } catch (error) {
-        console.log(error)
+        console.log("Live session creation error:", error)
         res.json({
             success:false,
-            msg:"Something went wrong"
+            msg:"Something went wrong: " + error.message
         })
     }
 
 })
-
 
 // One to One session booking
 
@@ -437,7 +436,7 @@ app.get('/sessions/:id', async (req, res) => {
     try {
         const { id } = req.params
 
-        const sessions = await prisma.session.findMany({
+        const sessions = await prisma.liveSession.findMany({
             where: {
                 teacherId: id,
                 startTime: {
