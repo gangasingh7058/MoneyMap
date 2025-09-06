@@ -1,34 +1,134 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import backgroundImage from '../../assets/image.png'
 
 const InvestorSignIn = () => {
   const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true)
-  const [formData, setFormData] = useState({
+  
+  // Separate states for signin and signup
+  const [signinData, setSigninData] = useState({
+    email: '',
+    password: ''
+  })
+  
+  const [signupData, setSignupData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    rememberMe: false,
     agreeToTerms: false
   })
+  
+  // Separate loading and error states
+  const [signinLoading, setSigninLoading] = useState(false)
+  const [signupLoading, setSignupLoading] = useState(false)
+  const [signinError, setSigninError] = useState('')
+  const [signupError, setSignupError] = useState('')
 
-  const handleInputChange = (e) => {
+  // Configure axios base URL
+  const API_BASE_URL = 'http://localhost:8000/api'
+
+  // Handle signin form input changes
+  const handleSigninChange = (e) => {
+    const { name, value } = e.target
+    setSigninData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+    // Clear error when user starts typing
+    if (signinError) setSigninError('')
+  }
+
+  // Handle signup form input changes
+  const handleSignupChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
+    setSignupData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
+    // Clear error when user starts typing
+    if (signupError) setSignupError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    // Handle form submission logic here
-    console.log('Form submitted:', formData)
-    
-    // Redirect to investor dashboard after successful submission
-    navigate('/investor/dashboard')
+    setSigninLoading(true)
+    setSigninError('')
+
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/auth/student/signin`, {
+        email: signinData.email.trim(),
+        password: signinData.password.trim()
+      })
+
+      if (data.success) {
+        // Store token in localStorage
+        localStorage.setItem('studentToken', data.token)
+        localStorage.setItem('userType', 'student')
+        
+        // Redirect to investor dashboard
+        navigate('/investor/dashboard')
+      } else {
+        setSigninError(data.msg || 'Login failed')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      if (error.response?.data?.msg) {
+        setSigninError(error.response.data.msg)
+      } else {
+        setSigninError('Network error. Please try again.')
+      }
+    } finally {
+      setSigninLoading(false)
+    }
+  }
+
+  const handleSignup = async (e) => {
+    e.preventDefault()
+    setSignupLoading(true)
+    setSignupError('')
+
+    // Validation
+    if (signupData.password !== signupData.confirmPassword) {
+      setSignupError('Passwords do not match')
+      setSignupLoading(false)
+      return
+    }
+
+    if (!signupData.agreeToTerms) {
+      setSignupError('Please agree to the Terms & Conditions')
+      setSignupLoading(false)
+      return
+    }
+
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/auth/student/signup`, {
+        name: signupData.fullName.trim(),
+        email: signupData.email.trim(),
+        password: signupData.password.trim()
+      })
+
+      if (data.success) {
+        // Store token in localStorage
+        localStorage.setItem('studentToken', data.token)
+        localStorage.setItem('userType', 'student')
+        
+        // Redirect to investor dashboard
+        navigate('/investor/dashboard')
+      } else {
+        setSignupError(data.msg || 'Signup failed')
+      }
+    } catch (error) {
+      console.error('Signup error:', error)
+      if (error.response?.data?.msg) {
+        setSignupError(error.response.data.msg)
+      } else {
+        setSignupError('Network error. Please try again.')
+      }
+    } finally {
+      setSignupLoading(false)
+    }
   }
 
   return (
@@ -57,16 +157,18 @@ const InvestorSignIn = () => {
           {/* Login Form */}
           <div className="form-card login-card">
             <h2 className="form-title">Welcome Back</h2>
-            <form onSubmit={handleSubmit}>
+            {signinError && <div className="error-message">{signinError}</div>}
+            <form onSubmit={handleLogin}>
               <div className="form-group">
                 <input
                   type="email"
                   name="email"
                   placeholder="Email Address"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                  value={signinData.email}
+                  onChange={handleSigninChange}
                   className="form-input"
                   required
+                  disabled={signinLoading}
                 />
               </div>
               <div className="form-group">
@@ -74,44 +176,37 @@ const InvestorSignIn = () => {
                   type="password"
                   name="password"
                   placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  value={signinData.password}
+                  onChange={handleSigninChange}
                   className="form-input"
                   required
+                  disabled={signinLoading}
                 />
               </div>
               <div className="form-options">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                  />
-                  Remember Me
-                </label>
                 <a href="#forgot" className="forgot-link">Forgot Password?</a>
               </div>
-              <button type="submit" className="btn btn-login">Login</button>
-              <p className="form-footer">
-                Don't have an account? <a href="#signup" className="signup-link">Signup here</a>
-              </p>
+              <button type="submit" className="btn btn-login" disabled={signinLoading}>
+                {signinLoading ? 'Signing In...' : 'Login'}
+              </button>
             </form>
           </div>
 
           {/* Signup Form */}
           <div className="form-card signup-card">
             <h2 className="form-title">Join the Future of Investing</h2>
-            <form onSubmit={handleSubmit}>
+            {signupError && <div className="error-message">{signupError}</div>}
+            <form onSubmit={handleSignup}>
               <div className="form-group">
                 <input
                   type="text"
                   name="fullName"
                   placeholder="Full Name"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
+                  value={signupData.fullName}
+                  onChange={handleSignupChange}
                   className="form-input"
                   required
+                  disabled={signupLoading}
                 />
               </div>
               <div className="form-group">
@@ -119,10 +214,11 @@ const InvestorSignIn = () => {
                   type="email"
                   name="email"
                   placeholder="Email Address"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                  value={signupData.email}
+                  onChange={handleSignupChange}
                   className="form-input"
                   required
+                  disabled={signupLoading}
                 />
               </div>
               <div className="form-group">
@@ -130,10 +226,11 @@ const InvestorSignIn = () => {
                   type="password"
                   name="password"
                   placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  value={signupData.password}
+                  onChange={handleSignupChange}
                   className="form-input"
                   required
+                  disabled={signupLoading}
                 />
               </div>
               <div className="form-group">
@@ -141,10 +238,11 @@ const InvestorSignIn = () => {
                   type="password"
                   name="confirmPassword"
                   placeholder="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
+                  value={signupData.confirmPassword}
+                  onChange={handleSignupChange}
                   className="form-input"
                   required
+                  disabled={signupLoading}
                 />
               </div>
               <div className="form-options">
@@ -152,14 +250,17 @@ const InvestorSignIn = () => {
                   <input
                     type="checkbox"
                     name="agreeToTerms"
-                    checked={formData.agreeToTerms}
-                    onChange={handleInputChange}
+                    checked={signupData.agreeToTerms}
+                    onChange={handleSignupChange}
                     required
+                    disabled={signupLoading}
                   />
                   I agree to the Terms & Conditions
                 </label>
               </div>
-              <button type="submit" className="btn btn-signup-submit">Create Account</button>
+              <button type="submit" className="btn btn-signup-submit" disabled={signupLoading}>
+                {signupLoading ? 'Creating Account...' : 'Create Account'}
+              </button>
             </form>
           </div>
         </div>
@@ -282,6 +383,16 @@ const InvestorSignIn = () => {
           color: #1f2937;
           margin-bottom: 2rem;
           text-align: left;
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 0.75rem;
+          border-radius: 6px;
+          margin-bottom: 1rem;
+          font-size: 0.875rem;
         }
 
         .form-group {

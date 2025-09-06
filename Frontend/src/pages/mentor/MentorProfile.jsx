@@ -1,28 +1,32 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import backgroundImage from '../../assets/image.png'
+import axios from 'axios'
 
 const MentorProfile = () => {
+
   const navigate = useNavigate()
   const [profileData, setProfileData] = useState({
-    fullName: '',
+    sebi_id: '',
     bio: '',
-    email: '',
-    password: '',
-    selectedTags: ['Stocks', 'IPOS', 'IPOS', 'ETFs'],
-    videoFile: null,
+    selectedTags: [],
     profilePhoto: null
   })
 
   const [accountSettings, setAccountSettings] = useState({
-    category: 'Cocstur art',
-    emailAddress: 'Nniti',
-    emailDomain: 'PeaMesters',
-    emailField: 'Ceptafturich',
+    category: 'Investment',
+    emailAddress: 'Personal',
+    emailDomain: '',
+    emailField: 'Primary',
     password: ''
   })
 
-  const availableTags = ['Stocks', 'IPOS', 'ETFs', 'Mutual Funds', 'Crypto', 'Real Estate', 'Options', 'Forex']
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const availableTags = ['Stocks', 'IPOS', 'ETFs', 'Mutual Funds', 'Crypto', 'Options', 'Forex']
+  const API_BASE_URL = 'http://localhost:8000/api'
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -50,15 +54,15 @@ const MentorProfile = () => {
     }
   }
 
-  const handleVideoUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setProfileData(prev => ({
-        ...prev,
-        videoFile: file
-      }))
-    }
-  }
+  // const handleVideoUpload = (e) => {
+  //   const file = e.target.files[0]
+  //   if (file) {
+  //     setProfileData(prev => ({
+  //       ...prev,
+  //       videoFile: file
+  //     }))
+  //   }
+  // }
 
   const toggleTag = (tag) => {
     setProfileData(prev => ({
@@ -69,11 +73,52 @@ const MentorProfile = () => {
     }))
   }
 
-  const handleSaveChanges = () => {
-    console.log('Profile Data:', profileData)
-    console.log('Account Settings:', accountSettings)
-    // Handle save logic here
-    navigate('/mentor/dashboard')
+  const handleSaveChanges = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    // Validation
+    if (!profileData.sebi_id || !profileData.bio || profileData.selectedTags.length === 0) {
+      setError('Please fill in all required fields: SEBI ID, Bio, and at least one expertise tag')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('mentorToken')
+      
+      if (!token) {
+        setError('Authentication token not found. Please login again.')
+        navigate('/mentor/signin')
+        return
+      }
+
+      const { data } = await axios.post(`${API_BASE_URL}/mentor/profile`, {
+        token: token,
+        bio: profileData.bio.trim(),
+        expertise_tags: profileData.selectedTags,
+        sebi_id: profileData.sebi_id.trim()
+      })
+
+      if (data.success) {
+        setSuccess('Profile updated successfully!')
+        setTimeout(() => {
+          navigate('/mentor/dashboard')
+        }, 1500)
+      } else {
+        setError(data.msg || 'Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Profile update error:', error)
+      if (error.response?.data?.msg) {
+        setError(error.response.data.msg)
+      } else {
+        setError('Network error. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleStripeConnect = () => {
@@ -104,7 +149,10 @@ const MentorProfile = () => {
           {/* Left Section - Profile Setup */}
           <div className="profile-setup-card">
             <h2 className="section-title">Set Up Your Mentor Profile</h2>
-            <p className="section-subtitle">Upcher is semboap</p>
+            
+            {/* Error and Success Messages */}
+            {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">{success}</div>}
 
             {/* Photo Upload */}
             <div className="photo-upload-section">
@@ -124,15 +172,23 @@ const MentorProfile = () => {
 
             {/* Full Name */}
             <div className="form-group">
-              <label className="form-label">Full Name</label>
+              <label className="form-label">SEBI ID</label>
+              <input
+                type="text"
+                name="sebi_id"
+                placeholder="Enter SEBI ID"
+                value={profileData.sebi_id}
+                onChange={handleInputChange}
+                className="form-input"
+              />
             </div>
 
             {/* Bio */}
             <div className="form-group">
-              <label className="form-label">Bio <span className="label-hint">(Short introduction)</span></label>
+              <label className="form-label">Bio <span className="label-hint">(Tell About Yourself)</span></label>
               <textarea
                 name="bio"
-                placeholder="Eortuindiuation"
+                placeholder="Tell About yourself"
                 value={profileData.bio}
                 onChange={handleInputChange}
                 className="form-textarea"
@@ -158,7 +214,7 @@ const MentorProfile = () => {
             </div>
 
             {/* Video Upload */}
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="form-label">Upload or Link Intro Video</label>
               <div className="video-upload-section">
                 <div className="file-upload-area">
@@ -174,7 +230,7 @@ const MentorProfile = () => {
                 />
                 <p className="file-info">Reole vindlarlyes.budp</p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Section - Account Settings */}
@@ -272,8 +328,9 @@ const MentorProfile = () => {
             type="button"
             onClick={handleSaveChanges}
             className="save-changes-btn"
+            disabled={loading}
           >
-            Save Changes
+            {loading ? 'Saving Profile...' : 'Proceed'}
           </button>
         </div>
       </main>
@@ -366,6 +423,26 @@ const MentorProfile = () => {
         .section-subtitle {
           color: #059669;
           margin-bottom: 2rem;
+          font-size: 0.875rem;
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 0.75rem;
+          border-radius: 6px;
+          margin-bottom: 1rem;
+          font-size: 0.875rem;
+        }
+
+        .success-message {
+          background-color: #d1fae5;
+          border: 1px solid #a7f3d0;
+          color: #065f46;
+          padding: 0.75rem;
+          border-radius: 6px;
+          margin-bottom: 1rem;
           font-size: 0.875rem;
         }
 
@@ -543,7 +620,7 @@ const MentorProfile = () => {
 
         .save-changes-btn {
           padding: 1rem 3rem;
-          background: #1e3a8a;
+          background: #059669;
           color: white;
           border: none;
           border-radius: 25px;
@@ -554,7 +631,7 @@ const MentorProfile = () => {
         }
 
         .save-changes-btn:hover {
-          background: #1e40af;
+          background: #047857;
         }
 
         /* Responsive Design */

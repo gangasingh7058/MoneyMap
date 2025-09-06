@@ -30,6 +30,12 @@ const JWT_SECRET=process.env.JWT_SECRET
   
 //   const upload = multer({ storage });
 
+app.get('/',(req,res)=>{
+    res.json({
+        success:true,
+        msg:"Welcome From User"
+    })
+})
 
 // Profile Creation
 
@@ -59,14 +65,36 @@ app.post('/profile',async (req,res)=>{
             })
         }
 
-        const updatedUser=await prisma.teacher.update({
-            where:{
-                id:decoded.id
+        // First, create or find expertise records
+        const expertiseRecords = []
+        for (const tagName of expertise_tags) {
+            let expertise = await prisma.teacherExpertise.findUnique({
+                where: { name: tagName }
+            })
+            
+            if (!expertise) {
+                expertise = await prisma.teacherExpertise.create({
+                    data: { name: tagName }
+                })
+            }
+            expertiseRecords.push({ id: expertise.id })
+        }
+
+        // Update teacher profile with bio and sebi_id, and connect expertise tags
+        const updatedUser = await prisma.teacher.update({
+            where: {
+                id: decoded.id
             },
-            data:{
-                bio:bio,
-                expertise_tags:expertise_tags,
-                sebi_id:sebi_id
+            data: {
+                bio: bio,
+                sebi_id: sebi_id,
+                expertises: {
+                    set: [], // Clear existing connections
+                    connect: expertiseRecords // Connect new ones
+                }
+            },
+            include: {
+                expertises: true // Include expertise data in response
             }
         })
 
@@ -285,6 +313,50 @@ app.post('/acknowledge',async (req,res)=>{
         })
     }
     
+
+})
+
+// get mentor name
+app.get('/name/:token',async (req,res)=>{
+
+    const {token}=req.params
+
+    if(!token){
+        return res.json({
+            success:false,
+            msg:"Send Token"
+        })
+    }
+    try {
+        
+
+        const decoded=jwt.verify(token,JWT_SECRET)
+
+        if(!decoded){
+            return res.json({
+                success:false,
+                msg:"Invalid User"
+            })
+        }
+
+        const user=await prisma.teacher.findUnique({
+            where:{
+                id:decoded.id
+            }
+        })
+
+        res.json({
+            success:true,
+            msg:"User Fetched Successfully",
+            user:user
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success:false,
+            msg:"Something went wrong"
+        })
+    }
 
 })
 

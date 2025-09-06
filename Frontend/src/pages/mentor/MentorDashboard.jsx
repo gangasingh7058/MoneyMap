@@ -11,7 +11,6 @@ const MentorDashboard = () => {
   })
 
   const [sessionData, setSessionData] = useState({
-    videoLink: '',
     dateTime: '',
     topic: '',
     description: ''
@@ -139,16 +138,6 @@ const MentorDashboard = () => {
               </div>
             </div>
             <div className="session-form">
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="videoLink"
-                  value={sessionData.videoLink}
-                  onChange={handleSessionChange}
-                  className="form-input"
-                  placeholder="Video Link"
-                />
-              </div>
               <div className="form-group">
                 <select
                   name="dateTime"
