@@ -210,6 +210,7 @@ const MentorDashboard = () => {
       const { data } = await axios.get(`${API_BASE_URL}/mentor/booking`, {
         headers: { token }
       })
+      console.log(data);
       
       if (data.success) {
         setBookings(data.bookings || [])
@@ -277,21 +278,16 @@ const MentorDashboard = () => {
           {/* Introductory Video Card - Now Full Height */}
           <div className="card video-card-full">
             <h3 className="card-title">Introductory Video</h3>
-            <div className="video-player">
-              <div className="video-placeholder">
-                <div className="play-button">▶</div>
-              </div>
-              <div className="video-controls">
-                <div className="control-left">
-                  <span className="play-icon">▶</span>
-                  <span className="next-icon">⏭</span>
-                  <span className="time">10:9:38</span>
-                </div>
-                <div className="control-right">
-                  <span className="settings-icon">⚙</span>
-                  <span className="fullscreen-icon">⛶</span>
-                </div>
-              </div>
+            <div className="video-container">
+              <iframe
+                width="100%"
+                height="315"
+                src="https://www.youtube.com/embed/DCLvhkYJtgo"
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
             </div>
             <div className="tags-container">
               {profileData.tags.length > 0 ? (
@@ -467,8 +463,8 @@ const MentorDashboard = () => {
                   <div key={booking.id} className="booking-item">
                     <div className="booking-avatar">👤</div>
                     <div className="booking-info">
-                      <div className="booking-name">Booking #{booking.id}</div>
-                      <div className="booking-date">{new Date(booking.createdAt).toLocaleDateString()}</div>
+                      <div className="booking-name">Booking {booking.student.name}</div>
+                      <div className="booking-date">Session: {new Date(booking.sessionDate).toLocaleDateString()} at {new Date(booking.sessionDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                     </div>
                     <div className={`booking-status ${booking.status.toLowerCase()}`}>
                       {booking.status}
@@ -669,6 +665,23 @@ const MentorDashboard = () => {
         /* Video Card Full Height */
         .video-card-full {
           grid-row: 1 / 4;
+        }
+
+        .video-container {
+          position: relative;
+          width: 100%;
+          height: 0;
+          padding-bottom: 56.25%; /* 16:9 aspect ratio */
+          margin-bottom: 1.5rem;
+        }
+
+        .video-container iframe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 8px;
         }
 
         /* Profile Card */

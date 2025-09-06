@@ -246,6 +246,14 @@ app.get('/booking',async (req,res)=>{
         const bookings=await prisma.booking.findMany({
             where:{
                 teacherId:decode.id
+            },
+            include:{
+                student: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
             }
         })
 
