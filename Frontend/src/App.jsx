@@ -8,6 +8,7 @@ import MentorSignIn from './pages/mentor/MentorSignIn'
 import MentorProfile from './pages/mentor/MentorProfile'
 import MentorDashboard from './pages/mentor/MentorDashboard'
 import VideoConferencePage from './pages/LiveSession/CallPage'
+import QuoteViewer from './pages/DemoTrading/demotrading'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/mentor/profile" element={<MentorProfile />} />
           <Route path="/mentor/dashboard" element={<MentorDashboard />} />
           <Route path="/live-session/" element={<VideoConferencePage />} />
+          <Route path="/demo-trading" element={<QuoteViewer />} />
         </Routes>
       </Router>
     </div>
