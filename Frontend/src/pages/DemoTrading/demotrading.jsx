@@ -8,64 +8,118 @@ function QuoteViewer() {
   const [portfolio, setPortfolio] = useState([
     {
       id: 1,
-      name: 'DummyCoin A',
-      symbol: 'DUCA',
-      amount: 2500,
-      currentValue: 3250,
-      change: 150,
-      changePercent: 4.8,
+      name: 'Bitcoin',
+      symbol: 'BINANCE:BTCUSDT',
+      amount: 0.5,
+      currentValue: 0,
+      change: 0,
+      changePercent: 0,
       icon: '₿'
     },
     {
       id: 2,
-      name: 'DummyCoin B',
-      symbol: 'DUCB',
-      amount: 2500,
-      currentValue: 3250,
-      change: 150,
-      changePercent: 4.8,
-      icon: '₿'
+      name: 'Ethereum',
+      symbol: 'BINANCE:ETHUSDT',
+      amount: 2.5,
+      currentValue: 0,
+      change: 0,
+      changePercent: 0,
+      icon: '⟠'
     }
   ]);
 
-  const [marketData, setMarketData] = useState([
+  const [marketData, setMarketData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const API_BASE_URL = 'http://localhost:8000';
+
+  // Crypto symbols for real data
+  const cryptoSymbols = [
     {
       id: 1,
-      name: 'DummyCoin A',
-      symbol: 'luD',
-      price: 1.30,
-      change24h: 5.20,
-      changePercent: 5.20,
+      name: 'Bitcoin',
+      symbol: 'BINANCE:BTCUSDT',
       icon: '₿',
       color: '#f7931a'
     },
     {
       id: 2,
-      name: 'DummyCoin B',
-      symbol: 'luD',
-      price: 1.30,
-      change24h: 5.20,
-      changePercent: -3.15,
-      icon: '🪙',
+      name: 'Ethereum',
+      symbol: 'BINANCE:ETHUSDT',
+      icon: '⟠',
       color: '#627eea'
     },
     {
       id: 3,
-      name: 'DummyCoin A',
-      symbol: 'luD',
-      price: 1.30,
-      change24h: 280,
-      changePercent: -3.15,
+      name: 'Cardano',
+      symbol: 'BINANCE:ADAUSDT',
       icon: '🔺',
       color: '#00d4aa'
     }
-  ]);
+  ];
+
+  // Fetch crypto data from backend
+  const fetchCryptoData = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const promises = cryptoSymbols.map(async (crypto) => {
+        const response = await axios.get(`${API_BASE_URL}/api/demo-trading/crypto/${crypto.symbol}`);
+        return {
+          id: crypto.id,
+          name: crypto.name,
+          symbol: crypto.symbol,
+          price: response.data.price || 0,
+          change24h: response.data.change || 0,
+          changePercent: response.data.changePercent || 0,
+          icon: crypto.icon,
+          color: crypto.color
+        };
+      });
+      
+      const results = await Promise.all(promises);
+      setMarketData(results);
+      
+      // Update portfolio values based on current prices
+      setPortfolio(prev => prev.map(item => {
+        const marketItem = results.find(m => m.symbol === item.symbol);
+        if (marketItem) {
+          const currentValue = item.amount * marketItem.price;
+          const change = currentValue - (item.amount * (marketItem.price - marketItem.change24h));
+          const changePercent = marketItem.changePercent;
+          
+          return {
+            ...item,
+            currentValue,
+            change,
+            changePercent
+          };
+        }
+        return item;
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching crypto data:', error);
+      setError('Failed to fetch market data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCryptoData();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchCryptoData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleBuySell = (coinId, action) => {
     const coin = marketData.find(c => c.id === coinId);
     if (!coin) return;
 
-    const amount = 100; // Fixed amount for demo
+    const amount = action === 'buy' ? 0.1 : 0.05; // Smaller amounts for crypto
     const cost = amount * coin.price;
 
     if (action === 'buy') {
@@ -73,10 +127,10 @@ function QuoteViewer() {
         setVirtualBalance(prev => prev - cost);
         // Add to portfolio or update existing
         setPortfolio(prev => {
-          const existing = prev.find(p => p.name === coin.name);
+          const existing = prev.find(p => p.symbol === coin.symbol);
           if (existing) {
             return prev.map(p => 
-              p.name === coin.name 
+              p.symbol === coin.symbol 
                 ? { ...p, amount: p.amount + amount, currentValue: p.currentValue + cost }
                 : p
             );
@@ -95,12 +149,12 @@ function QuoteViewer() {
         });
       }
     } else if (action === 'sell') {
-      const portfolioItem = portfolio.find(p => p.name === coin.name);
+      const portfolioItem = portfolio.find(p => p.symbol === coin.symbol);
       if (portfolioItem && portfolioItem.amount >= amount) {
         setVirtualBalance(prev => prev + cost);
         setPortfolio(prev => 
           prev.map(p => 
-            p.name === coin.name 
+            p.symbol === coin.symbol 
               ? { ...p, amount: p.amount - amount, currentValue: p.currentValue - cost }
               : p
           ).filter(p => p.amount > 0)
@@ -122,7 +176,7 @@ function QuoteViewer() {
           </div>
           <div className="balance-card">
             <div className="balance-label">Virtual Balance</div>
-            <div className="balance-amount">{virtualBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} DUC</div>
+            <div className="balance-amount">${virtualBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div className="balance-change positive">
               +{balanceChange.amount} ({balanceChange.percentage}%)
             </div>
@@ -147,47 +201,56 @@ function QuoteViewer() {
             {/* Market Overview */}
             <div className="section">
               <h2 className="section-title">Market Overview</h2>
-              <div className="market-table">
-                <div className="table-header">
-                  <div className="col">Coin</div>
-                  <div className="col">Price</div>
-                  <div className="col">24h</div>
-                  <div className="col">Change</div>
-                  <div className="col">Trade</div>
-                </div>
-                {marketData.map(coin => (
-                  <div key={coin.id} className="table-row">
-                    <div className="col coin-info">
-                      <div className="coin-icon" style={{ backgroundColor: coin.color }}>
-                        {coin.icon}
-                      </div>
-                      <div>
-                        <div className="coin-name">{coin.name}</div>
-                        <div className="coin-symbol">({coin.symbol})</div>
-                      </div>
-                    </div>
-                    <div className="col price">${coin.price}</div>
-                    <div className="col change-24h positive">${coin.change24h}</div>
-                    <div className={`col change-percent ${coin.changePercent > 0 ? 'positive' : 'negative'}`}>
-                      {coin.changePercent > 0 ? '+' : ''}{coin.changePercent}%
-                    </div>
-                    <div className="col trade-buttons">
-                      <button 
-                        className="trade-btn buy"
-                        onClick={() => handleBuySell(coin.id, 'buy')}
-                      >
-                        Buy
-                      </button>
-                      <button 
-                        className="trade-btn sell"
-                        onClick={() => handleBuySell(coin.id, 'sell')}
-                      >
-                        Sell
-                      </button>
-                    </div>
+              {error && <div className="error-message">{error}</div>}
+              {loading ? (
+                <div className="loading-message">Loading market data...</div>
+              ) : (
+                <div className="market-table">
+                  <div className="table-header">
+                    <div className="col">Coin</div>
+                    <div className="col">Price</div>
+                    <div className="col">24h Change</div>
+                    <div className="col">Change %</div>
+                    <div className="col">Trade</div>
                   </div>
-                ))}
-              </div>
+                  {marketData.map(coin => (
+                    <div key={coin.id} className="table-row">
+                      <div className="col coin-info">
+                        <div className="coin-icon" style={{ backgroundColor: coin.color }}>
+                          {coin.icon}
+                        </div>
+                        <div>
+                          <div className="coin-name">{coin.name}</div>
+                          <div className="coin-symbol">{coin.symbol.split(':')[1] || coin.symbol}</div>
+                        </div>
+                      </div>
+                      <div className="col price">${coin.price?.toFixed(2) || '0.00'}</div>
+                      <div className={`col change-24h ${coin.change24h >= 0 ? 'positive' : 'negative'}`}>
+                        {coin.change24h >= 0 ? '+' : ''}${coin.change24h?.toFixed(2) || '0.00'}
+                      </div>
+                      <div className={`col change-percent ${coin.changePercent >= 0 ? 'positive' : 'negative'}`}>
+                        {coin.changePercent >= 0 ? '+' : ''}{coin.changePercent?.toFixed(2) || '0.00'}%
+                      </div>
+                      <div className="col trade-buttons">
+                        <button 
+                          className="trade-btn buy"
+                          onClick={() => handleBuySell(coin.id, 'buy')}
+                          disabled={loading}
+                        >
+                          Buy
+                        </button>
+                        <button 
+                          className="trade-btn sell"
+                          onClick={() => handleBuySell(coin.id, 'sell')}
+                          disabled={loading}
+                        >
+                          Sell
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* My Portfolio */}
@@ -204,9 +267,9 @@ function QuoteViewer() {
                       </div>
                     </div>
                     <div className="portfolio-value">
-                      <div className="current-value">Current Value: <span className="value">${item.currentValue.toLocaleString()}</span></div>
+                      <div className="current-value">Current Value: <span className="value">${item.currentValue?.toFixed(2) || '0.00'}</span></div>
                       <div className={`portfolio-change ${item.change >= 0 ? 'positive' : 'negative'}`}>
-                        {item.change >= 0 ? '+' : ''}${item.change} ({item.changePercent}%)
+                        {item.change >= 0 ? '+' : ''}${item.change?.toFixed(2) || '0.00'} ({item.changePercent?.toFixed(2) || '0.00'}%)
                       </div>
                     </div>
                   </div>
@@ -453,6 +516,28 @@ function QuoteViewer() {
 
         .negative {
           color: #ef4444;
+        }
+
+        .loading-message {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+          font-size: 1.1rem;
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          text-align: center;
+        }
+
+        .trade-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .trade-buttons {

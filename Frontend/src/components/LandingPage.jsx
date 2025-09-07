@@ -12,9 +12,6 @@ const LandingPage = () => {
             <span className="logo-text">FinanceFlow</span>
           </div>
           <nav className="nav-menu">
-            <a href="#learn" className="nav-link active">Learn</a>
-            <a href="#mentors" className="nav-link">Mentors</a>
-            <a href="#pricing" className="nav-link">Pricing</a>
           </nav>
           <div className="nav-buttons">
             <Link to="/investor/signin" className="btn btn-secondary">

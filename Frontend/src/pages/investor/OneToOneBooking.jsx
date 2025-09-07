@@ -148,9 +148,9 @@ const OneToOneBooking = () => {
               <span className="logo-text">FinanceFlow</span>
             </Link>
             <nav className="nav-menu">
-              <a href="#santors" className="nav-link">Santors</a>
+              {/* <a href="#santors" className="nav-link">Santors</a>
               <a href="#my-sessions" className="nav-link">My Sessions</a>
-              <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
+              <a href="#mentors" className="nav-link nav-mentors">Mentors</a> */}
             </nav>
           </div>
         </header>
@@ -283,9 +283,9 @@ const OneToOneBooking = () => {
               <span className="logo-text">FinanceFlow</span>
             </Link>
             <nav className="nav-menu">
-              <a href="#santors" className="nav-link">Santors</a>
+              {/* <a href="#santors" className="nav-link">Santors</a>
               <a href="#my-sessions" className="nav-link">My Sessions</a>
-              <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
+              <a href="#mentors" className="nav-link nav-mentors">Mentors</a> */}
             </nav>
           </div>
         </header>
@@ -435,9 +435,9 @@ const OneToOneBooking = () => {
             <span className="logo-text">FinanceFlow</span>
           </Link>
           <nav className="nav-menu">
-            <a href="#santors" className="nav-link">Santors</a>
+            {/* <a href="#santors" className="nav-link">Santors</a>
             <a href="#my-sessions" className="nav-link">My Sessions</a>
-            <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
+            <a href="#mentors" className="nav-link nav-mentors">Mentors</a> */}
           </nav>
         </div>
       </header>

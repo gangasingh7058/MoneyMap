@@ -2,32 +2,36 @@ const { Router } = require("express");
 const app=Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const jwt=require("jsonwebtoken")
 const dotenv=require("dotenv")
 dotenv.config()
-const JWT_SECRET=process.env.JWT_SECRET
+
+const FINNHUB_API_KEY = 'd2ucpr1r01qo4hodvh9gd2ucpr1r01qo4hodvha0';
 const axios=require("axios")
 
-const FINNHUB_API_KEY = "d2ucpr1r01qo4hodvh9gd2ucpr1r01qo4hodvha0" // paste your key
+// Route to get crypto quote
+app.get("/crypto/:symbol", async (req, res) => {
+  try {
+    const { symbol } = req.params;
 
-app.get('/',(req,res)=>{
+    // Finnhub crypto symbols are like: BINANCE:BTCUSDT, BINANCE:ETHUSDT, etc.
+    const response = await axios.get(
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+    );
+
     res.json({
-        msg:"Welcome To Demo Trading"
-    })
-})
+      symbol,
+      price: response.data.c, // current price
+      high: response.data.h,
+      low: response.data.l,
+      open: response.data.o,
+      prevClose: response.data.pc,
+      change: response.data.d,
+      changePercent: response.data.dp,
+    });
+  } catch (error) {
+    console.error("Error fetching crypto data:", error.message);
+    res.status(500).json({ error: "Failed to fetch crypto data" });
+  }
+});
 
-// Get stock quote by symbol
-app.get("/quote", async (req, res) => {
-    try {
-      const { symbol='TSLA' } = req.query; // e.g. AAPL, TSLA
-      const response = await axios.get(
-        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
-      );
-      res.json(response.data);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  
-  module.exports=app
+module.exports=app
