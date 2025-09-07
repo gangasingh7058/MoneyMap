@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000
 const authRoutes = require('./routes/Auth/auth.js')
 const mentorRoutes = require('./routes/Mentor/mentor.js')
 const userRoutes = require('./routes/User/user.js')
+const demoTradingRoutes = require('./routes/DemoTrading/stock_price.js')
 
 app.use(cors())
 app.use(express.json())
@@ -18,6 +19,7 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/mentor', mentorRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api/demo-trading', demoTradingRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Gene Education Platform API is running!' })
