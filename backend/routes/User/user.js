@@ -149,4 +149,45 @@ app.post('/booking/:id',async (req,res)=>{
 
 })
 
+// get all bookings
+app.get('/my-bookings',async (req,res)=>{
+    const {token}=req.headers
+
+    if(!token){
+        return res.json({
+            success:false,
+            msg:"Send Token"
+        })
+    }
+    try {
+        const decode=jwt.verify(token,JWT_SECRET)
+
+        if(!decode){
+            return res.json({
+                success:false,
+                msg:"Invalid User"
+            })
+        }
+
+        const bookings=await prisma.booking.findMany({
+            where:{
+                studentId:decode.id
+            }
+        })
+
+        res.json({
+            success:true,
+            msg:"Bookings Fetched Successfully",
+            bookings:bookings
+        })
+
+    } catch (error) {
+        console.log(error)
+        res.json({
+            success:false,
+            msg:"Something went wrong"
+        })
+    }
+})
+
 module.exports=app

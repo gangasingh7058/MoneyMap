@@ -469,6 +469,13 @@ const MentorDashboard = () => {
                     <div className={`booking-status ${booking.status.toLowerCase()}`}>
                       {booking.status}
                     </div>
+                    <button className="join-now-btn"
+                    onClick={()=>{
+                     navigate('/live-session')   
+                    }}
+                    >
+                      Join Now
+                    </button>
                   </div>
                 ))
               )}
@@ -1099,6 +1106,24 @@ const MentorDashboard = () => {
         .booking-status.pending {
           background: #dbeafe;
           color: #1e40af;
+        }
+
+        .join-now-btn {
+          background: #059669;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+
+        .join-now-btn:hover {
+          background: #047857;
+          transform: translateY(-1px);
         }
 
         /* Responsive Design */

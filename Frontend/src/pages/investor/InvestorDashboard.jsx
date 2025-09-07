@@ -10,6 +10,9 @@ const InvestorDashboard = () => {
   const [mentors, setMentors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showMySessionsModal, setShowMySessionsModal] = useState(false)
+  const [userBookings, setUserBookings] = useState([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
 
   const API_BASE_URL = 'http://localhost:8000/api'
 
@@ -90,6 +93,72 @@ const InvestorDashboard = () => {
     navigate(`/investor/profile-overview/${mentorId}`)
   }
 
+  const handleMySessionsClick = async (e) => {
+    e.preventDefault()
+    setShowMySessionsModal(true)
+    await fetchUserBookings()
+  }
+
+  const fetchUserBookings = async () => {
+    setBookingsLoading(true)
+    try {
+      const token = localStorage.getItem('studentToken')
+      if (!token) {
+        setError('Please login to view your sessions')
+        return
+      }
+
+      const { data } = await axios.get(`${API_BASE_URL}/user/my-bookings`, {
+        headers: { token }
+      })
+
+      if (data.success) {
+        // Transform the booking data to include mentor information
+        const bookingsWithMentorInfo = await Promise.all(
+          data.bookings.map(async (booking) => {
+            try {
+              // Fetch mentor details for each booking
+              const mentorResponse = await axios.get(`${API_BASE_URL}/mentor/${booking.teacherId}`)
+              const mentorData = mentorResponse.data.success ? mentorResponse.data.mentor : null
+              
+              return {
+                id: booking.id,
+                mentorName: mentorData?.name || 'Unknown Mentor',
+                sessionDate: booking.sessionDate,
+                status: booking.status,
+                topic: 'One-to-One Session', // Default topic since it's not in the booking model
+                createdAt: booking.createdAt
+              }
+            } catch (error) {
+              console.error('Error fetching mentor details:', error)
+              return {
+                id: booking.id,
+                mentorName: 'Unknown Mentor',
+                sessionDate: booking.sessionDate,
+                status: booking.status,
+                topic: 'One-to-One Session',
+                createdAt: booking.createdAt
+              }
+            }
+          })
+        )
+        
+        setUserBookings(bookingsWithMentorInfo)
+      } else {
+        setError(data.msg || 'Failed to fetch your sessions')
+      }
+    } catch (error) {
+      console.error('Error fetching user bookings:', error)
+      setError('Failed to load your sessions')
+    } finally {
+      setBookingsLoading(false)
+    }
+  }
+
+  const closeModal = () => {
+    setShowMySessionsModal(false)
+  }
+
 
   return (
     <div className="investor-dashboard">
@@ -101,9 +170,8 @@ const InvestorDashboard = () => {
             <span className="logo-text">FinanceFlow</span>
           </Link>
           <nav className="nav-menu">
-            <a href="#dashboard" className="nav-link active">Dashboard</a>
-            <a href="#my-sessions" className="nav-link">My Sessions</a>
-            <a href="#my-sessions" className="nav-link">My Sessions</a>
+            {/* <a href="#dashboard" className="nav-link active">Dashboard</a> */}
+            <a href="#my-sessions" className="nav-link" onClick={handleMySessionsClick}>My Sessions</a>
             <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
           </nav>
         </div>
@@ -187,6 +255,49 @@ const InvestorDashboard = () => {
 
         </div>
       </main>
+
+      {/* My Sessions Modal */}
+      {showMySessionsModal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>My Sessions</h2>
+              <button className="close-btn" onClick={closeModal}>×</button>
+            </div>
+            <div className="modal-body">
+              {bookingsLoading ? (
+                <div className="loading-message">Loading your sessions...</div>
+              ) : userBookings.length === 0 ? (
+                <div className="no-sessions">No sessions scheduled yet</div>
+              ) : (
+                <div className="sessions-list">
+                  {userBookings.map((booking) => (
+                    <div key={booking.id} className="session-item">
+                      <div className="session-icon">📅</div>
+                      <div className="session-info">
+                        <div className="session-mentor">{booking.mentorName}</div>
+                        <div className="session-topic">{booking.topic}</div>
+                        <div className="session-date">
+                          {new Date(booking.sessionDate).toLocaleDateString()} at {new Date(booking.sessionDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </div>
+                      <div className={`session-status ${booking.status.toLowerCase()}`}>
+                        {booking.status}
+                      </div>
+                      <button 
+                        className="join-now-btn"
+                        onClick={() => navigate('/live-session')}
+                      >
+                        Join Now
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .investor-dashboard {
@@ -574,6 +685,164 @@ const InvestorDashboard = () => {
         }
 
 
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 2rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          color: #1f2937;
+          font-size: 1.5rem;
+          font-weight: 700;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 2rem;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 0;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+          background: #f3f4f6;
+          color: #1f2937;
+        }
+
+        .modal-body {
+          padding: 2rem;
+        }
+
+        .sessions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .session-item {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.5rem;
+          border-radius: 12px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          transition: all 0.3s ease;
+        }
+
+        .session-item:hover {
+          background: #f3f4f6;
+          transform: translateY(-1px);
+        }
+
+        .session-icon {
+          font-size: 2rem;
+          flex-shrink: 0;
+        }
+
+        .session-info {
+          flex: 1;
+        }
+
+        .session-mentor {
+          font-weight: 700;
+          color: #1f2937;
+          font-size: 1.1rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .session-topic {
+          color: #059669;
+          font-weight: 600;
+          font-size: 0.9rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .session-date {
+          color: #6b7280;
+          font-size: 0.85rem;
+        }
+
+        .session-status {
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .session-status.confirmed {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .session-status.pending {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .no-sessions {
+          text-align: center;
+          padding: 3rem 2rem;
+          color: #6b7280;
+          font-size: 1.1rem;
+        }
+
+        .join-now-btn {
+          background: #059669;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+
+        .join-now-btn:hover {
+          background: #047857;
+          transform: translateY(-1px);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
           .content-grid {
@@ -596,6 +865,25 @@ const InvestorDashboard = () => {
 
           .mentors-grid {
             grid-template-columns: 1fr;
+          }
+
+          .modal-content {
+            width: 95%;
+            margin: 1rem;
+          }
+
+          .modal-header {
+            padding: 1rem 1.5rem;
+          }
+
+          .modal-body {
+            padding: 1.5rem;
+          }
+
+          .session-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
           }
         }
       `}</style>

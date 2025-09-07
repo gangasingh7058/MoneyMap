@@ -23,7 +23,7 @@ const VideoConferencePage = () => {
   // --- Setup WebSocket ---
   useEffect(() => {
     const setup_socket = () => {
-      const ws = new WebSocket(`${import.meta.env.VITE_WEBSOCKET_ROUTE}`);
+      const ws = new WebSocket(`ws://localhost:8080`);
 
       ws.onopen = () => console.log("Connected to WS server");
       ws.onclose = () => console.log("Disconnected from WS");
