@@ -62,10 +62,6 @@ const LandingPage = () => {
             <span>IPOS</span>
           </div>
           <div className="category-item">
-            <div className="category-icon">🚀</div>
-            <span>ETFS</span>
-          </div>
-          <div className="category-item">
             <div className="category-icon">💼</div>
             <span>ETFs</span>
           </div>

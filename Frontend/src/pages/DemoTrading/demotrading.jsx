@@ -1,96 +1,421 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 function QuoteViewer() {
-  const [activeTab, setActiveTab] = useState('Dashboard');
-  const [virtualBalance, setVirtualBalance] = useState(12450.78);
-  const [balanceChange, setBalanceChange] = useState({ amount: 245.12, percentage: 2.01 });
-  const [portfolio, setPortfolio] = useState([
-    {
-      id: 1,
-      name: 'DummyCoin A',
-      symbol: 'DUCA',
-      amount: 2500,
-      currentValue: 3250,
-      change: 150,
-      changePercent: 4.8,
-      icon: '₿'
-    },
-    {
-      id: 2,
-      name: 'DummyCoin B',
-      symbol: 'DUCB',
-      amount: 2500,
-      currentValue: 3250,
-      change: 150,
-      changePercent: 4.8,
-      icon: '₿'
-    }
-  ]);
-
-  const [marketData, setMarketData] = useState([]);
+  const [bitcoinPrice, setBitcoinPrice] = useState(null);
+  const [priceChange, setPriceChange] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const API_BASE_URL = 'http://localhost:8000';
-
-  const [selectedCoin, setSelectedCoin] = useState(null);
   const [chartTimeframe, setChartTimeframe] = useState('1D');
-  const [tradingStats, setTradingStats] = useState({
-    totalTrades: 0,
-    winRate: 0,
-    totalProfit: 0,
-    bestTrade: 0,
-    worstTrade: 0
-  });
-  const [orderAmount, setOrderAmount] = useState('');
-  const [orderPrice, setOrderPrice] = useState('');
-  const chartContainerRef = useRef(null);
 
-  // Fetch market data from backend
-  const fetchMarketData = async () => {
+  // Fetch Bitcoin price from CoinGecko API
+  const fetchBitcoinPrice = async () => {
     setLoading(true);
     setError('');
     
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/demo-trading/market-data`);
+      const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
       
-      if (response.data.success) {
-        setMarketData(response.data.data);
-        if (!selectedCoin && response.data.data.length > 0) {
-          setSelectedCoin(response.data.data[0]);
-        }
+      if (response.data.bitcoin) {
+        setBitcoinPrice(response.data.bitcoin.usd);
+        setPriceChange(response.data.bitcoin.usd_24h_change);
       } else {
-        setError('Failed to fetch market data');
+        setError('Failed to fetch Bitcoin price');
       }
     } catch (error) {
-      console.error('Error fetching market data:', error);
+      console.error('Error fetching Bitcoin price:', error);
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch portfolio data
-  const fetchPortfolioData = async () => {
+  useEffect(() => {
+    fetchBitcoinPrice();
+    // Update price every 30 seconds
+    const interval = setInterval(fetchBitcoinPrice, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bitcoin-price-viewer">
+      <div className="container">
+        {/* Header */}
+        <div className="header">
+          <div className="logo">
+            <div className="logo-icon">₿</div>
+            <span className="logo-text">BITCOIN <span className="tracker">TRACKER</span></span>
+          </div>
+        </div>
+
+        <div className="main-content">
+          {error && <div className="error-message">{error}</div>}
+          
+          {loading ? (
+            <div className="loading-message">Loading Bitcoin price...</div>
+          ) : (
+            <div className="price-section">
+              <div className="bitcoin-card">
+                <div className="coin-header">
+                  <div className="coin-icon">₿</div>
+                  <div className="coin-info">
+                    <h1 className="coin-name">Bitcoin</h1>
+                    <p className="coin-symbol">BTC</p>
+                  </div>
+                </div>
+                
+                <div className="price-display">
+                  <div className="current-price">
+                    ${bitcoinPrice?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                  </div>
+                  <div className={`price-change ${priceChange >= 0 ? 'positive' : 'negative'}`}>
+                    {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}% (24h)
+                  </div>
+                </div>
+              </div>
+
+              <div className="timeframe-selector">
+                {['1H', '4H', '1D', '1W', '1M'].map(tf => (
+                  <button
+                    key={tf}
+                    className={`timeframe-btn ${chartTimeframe === tf ? 'active' : ''}`}
+                    onClick={() => setChartTimeframe(tf)}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+
+              <div className="refresh-section">
+                <button onClick={fetchBitcoinPrice} className="refresh-btn">
+                  Refresh Price
+                </button>
+                <p className="last-updated">Auto-updates every 30 seconds</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .bitcoin-price-viewer {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #f7931a 0%, #ff6b35 100%);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          padding: 20px;
+        }
+
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 20px;
+          padding: 30px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 40px;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .logo-icon {
+          width: 50px;
+          height: 50px;
+          background: #f7931a;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          color: white;
+          font-weight: bold;
+        }
+
+        .logo-text {
+          font-size: 28px;
+          font-weight: bold;
+          color: #1f2937;
+        }
+
+        .tracker {
+          color: #f7931a;
+        }
+
+        .main-content {
+          text-align: center;
+        }
+
+        .loading-message {
+          font-size: 1.2rem;
+          color: #6b7280;
+          padding: 40px;
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 1rem 2rem;
+          border-radius: 8px;
+          margin-bottom: 2rem;
+          font-size: 1rem;
+        }
+
+        .bitcoin-card {
+          background: #f9fafb;
+          border-radius: 20px;
+          padding: 40px;
+          margin-bottom: 30px;
+          border: 2px solid #f7931a;
+        }
+
+        .coin-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+
+        .coin-icon {
+          width: 80px;
+          height: 80px;
+          background: #f7931a;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 40px;
+          color: white;
+          font-weight: bold;
+        }
+
+        .coin-info {
+          text-align: left;
+        }
+
+        .coin-name {
+          font-size: 2.5rem;
+          font-weight: bold;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .coin-symbol {
+          font-size: 1.2rem;
+          color: #6b7280;
+          margin: 5px 0 0 0;
+        }
+
+        .price-display {
+          text-align: center;
+        }
+
+        .current-price {
+          font-size: 3.5rem;
+          font-weight: bold;
+          color: #1f2937;
+          margin-bottom: 15px;
+        }
+
+        .price-change {
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+
+        .price-change.positive {
+          color: #22c55e;
+        }
+
+        .price-change.negative {
+          color: #ef4444;
+        }
+
+        .timeframe-selector {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 30px;
+        }
+
+        .timeframe-btn {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .timeframe-btn:hover {
+          background: #e5e7eb;
+        }
+
+        .timeframe-btn.active {
+          background: #f7931a;
+          color: white;
+          border-color: #f7931a;
+        }
+
+        .refresh-section {
+          text-align: center;
+        }
+
+        .refresh-btn {
+          background: #f7931a;
+          color: white;
+          border: none;
+          padding: 15px 30px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+          margin-bottom: 15px;
+        }
+
+        .refresh-btn:hover {
+          background: #e8851e;
+        }
+
+        .last-updated {
+          color: #6b7280;
+          font-size: 14px;
+          margin: 0;
+        }
+
+        @media (max-width: 768px) {
+          .container {
+            padding: 20px;
+          }
+
+          .coin-header {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .coin-info {
+            text-align: center;
+          }
+
+          .coin-name {
+            font-size: 2rem;
+          }
+
+          .current-price {
+            font-size: 2.5rem;
+          }
+
+          .timeframe-selector {
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+  // Initialize wallet for new user
+  const initializeWallet = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/demo-trading/portfolio`);
+      const response = await axios.post(`${API_BASE_URL}/api/wallet/initialize/${DEMO_USER_ID}`);
       
       if (response.data.success) {
-        setPortfolio(response.data.portfolio);
+        setUserPortfolio(response.data.data);
+        setVirtualBalance(response.data.data.balance);
+        
+        // Show welcome message for new users
+        if (response.data.message.includes('Welcome')) {
+          alert(response.data.message);
+        }
       }
     } catch (error) {
-      console.error('Error fetching portfolio data:', error);
+      console.error('Error initializing wallet:', error);
+    }
+  };
+
+  // Fetch user wallet/portfolio data
+  const fetchWalletData = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/wallet/portfolio/${DEMO_USER_ID}`);
+      
+      if (response.data.success) {
+        setUserPortfolio(response.data.data);
+        setVirtualBalance(response.data.data.balance);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+      // If wallet doesn't exist, initialize it
+      await initializeWallet();
+    }
+  };
+
+  // Fetch user holdings
+  const fetchHoldings = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/trades/holdings/${DEMO_USER_ID}`);
+      
+      if (response.data.success) {
+        setHoldings(response.data.data);
+        // Convert holdings to portfolio format for display
+        const portfolioData = response.data.data.map(holding => ({
+          id: holding.symbol,
+          name: holding.symbol,
+          symbol: holding.symbol,
+          amount: holding.quantity,
+          currentValue: holding.quantity * holding.avgBuyPrice,
+          avgBuyPrice: holding.avgBuyPrice,
+          totalInvested: holding.totalInvested,
+          change: 0, // Will be calculated with current market price
+          changePercent: 0,
+          icon: '₿'
+        }));
+        setPortfolio(portfolioData);
+      }
+    } catch (error) {
+      console.error('Error fetching holdings:', error);
+    }
+  };
+
+  // Fetch trade history
+  const fetchTradeHistory = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/trades/history/${DEMO_USER_ID}?limit=10`);
+      
+      if (response.data.success) {
+        setTradeHistory(response.data.data.trades);
+      }
+    } catch (error) {
+      console.error('Error fetching trade history:', error);
     }
   };
 
   // Fetch trading statistics
   const fetchTradingStats = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/demo-trading/trading-stats`);
+      const response = await axios.get(`${API_BASE_URL}/api/trades/stats/${DEMO_USER_ID}`);
       
       if (response.data.success) {
-        setTradingStats(response.data.stats);
+        const stats = response.data.data;
+        setTradingStats({
+          totalTrades: stats.totalTrades,
+          winRate: stats.sellTrades > 0 ? ((stats.netPnL > 0 ? 1 : 0) * 100) : 0,
+          totalProfit: stats.netPnL,
+          bestTrade: stats.totalRealized > 0 ? stats.totalRealized / stats.sellTrades : 0,
+          worstTrade: 0 // This would need more detailed calculation
+        });
       }
     } catch (error) {
       console.error('Error fetching trading stats:', error);
@@ -100,13 +425,16 @@ function QuoteViewer() {
   // Initial data fetch
   useEffect(() => {
     fetchMarketData();
-    fetchPortfolioData();
+    fetchWalletData();
+    fetchHoldings();
+    fetchTradeHistory();
     fetchTradingStats();
     
     // Refresh data every 30 seconds
     const interval = setInterval(() => {
       fetchMarketData();
-      fetchPortfolioData();
+      fetchWalletData();
+      fetchHoldings();
     }, 30000);
     
     return () => clearInterval(interval);
@@ -133,52 +461,54 @@ function QuoteViewer() {
     return (amount * price).toFixed(2);
   };
 
+  // Execute trade using real API
+  const executeTrade = async (symbol, quantity, price, type) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/trades/execute`, {
+        userId: DEMO_USER_ID,
+        symbol: symbol,
+        quantity: parseInt(quantity),
+        price: parseFloat(price),
+        type: type
+      });
+
+      if (response.data.success) {
+        // Refresh data after successful trade
+        await fetchWalletData();
+        await fetchHoldings();
+        await fetchTradeHistory();
+        await fetchTradingStats();
+        
+        // Clear order form
+        setOrderAmount('');
+        setOrderPrice('');
+        
+        alert(`${type.charAt(0).toUpperCase() + type.slice(1)} order executed successfully!`);
+      } else {
+        alert(`Trade failed: ${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('Error executing trade:', error);
+      alert(`Trade failed: ${error.response?.data?.message || 'Network error'}`);
+    }
+  };
+
   const handleBuySell = (coinId, action) => {
     const coin = marketData.find(c => c.id === coinId);
     if (!coin) return;
 
-    const amount = 100; // Fixed amount for demo
-    const cost = amount * coin.price;
+    const quantity = 1; // Fixed quantity for quick trade
+    executeTrade(coin.symbol, quantity, coin.price, action);
+  };
 
-    if (action === 'buy') {
-      if (virtualBalance >= cost) {
-        setVirtualBalance(prev => prev - cost);
-        // Add to portfolio or update existing
-        setPortfolio(prev => {
-          const existing = prev.find(p => p.name === coin.name);
-          if (existing) {
-            return prev.map(p => 
-              p.name === coin.name 
-                ? { ...p, amount: p.amount + amount, currentValue: p.currentValue + cost }
-                : p
-            );
-          } else {
-            return [...prev, {
-              id: Date.now(),
-              name: coin.name,
-              symbol: coin.symbol,
-              amount: amount,
-              currentValue: cost,
-              change: 0,
-              changePercent: 0,
-              icon: coin.icon
-            }];
-          }
-        });
-      }
-    } else if (action === 'sell') {
-      const portfolioItem = portfolio.find(p => p.name === coin.name);
-      if (portfolioItem && portfolioItem.amount >= amount) {
-        setVirtualBalance(prev => prev + cost);
-        setPortfolio(prev => 
-          prev.map(p => 
-            p.name === coin.name 
-              ? { ...p, amount: p.amount - amount, currentValue: p.currentValue - cost }
-              : p
-          ).filter(p => p.amount > 0)
-        );
-      }
+  // Handle order form submission
+  const handleOrderSubmit = (type) => {
+    if (!selectedCoin || !orderAmount || !orderPrice) {
+      alert('Please fill in all order details');
+      return;
     }
+    
+    executeTrade(selectedCoin.symbol, orderAmount, orderPrice, type);
   };
 
   // TradingChart Component
@@ -407,9 +737,20 @@ function QuoteViewer() {
                       />
                     </div>
                   </div>
-                  <button className="place-order-btn buy-btn">
-                    Place Buy Order
-                  </button>
+                  <div className="order-buttons">
+                    <button 
+                      className="place-order-btn buy-btn"
+                      onClick={() => handleOrderSubmit('buy')}
+                    >
+                      Place Buy Order
+                    </button>
+                    <button 
+                      className="place-order-btn sell-btn"
+                      onClick={() => handleOrderSubmit('sell')}
+                    >
+                      Place Sell Order
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -489,6 +830,47 @@ function QuoteViewer() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Trade History */}
+            <div className="section">
+              <h2 className="section-title">Recent Trades</h2>
+              <div className="trade-history">
+                {tradeHistory.length > 0 ? (
+                  <div className="trades-table">
+                    <div className="table-header">
+                      <div className="col">Symbol</div>
+                      <div className="col">Type</div>
+                      <div className="col">Quantity</div>
+                      <div className="col">Price</div>
+                      <div className="col">Total</div>
+                      <div className="col">Date</div>
+                    </div>
+                    {tradeHistory.map(trade => (
+                      <div key={trade.id} className="table-row">
+                        <div className="col">
+                          <span className="symbol">{trade.symbol}</span>
+                        </div>
+                        <div className="col">
+                          <span className={`trade-type ${trade.type}`}>
+                            {trade.type.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="col">{trade.quantity}</div>
+                        <div className="col">${trade.price.toFixed(2)}</div>
+                        <div className="col">${(trade.quantity * trade.price).toFixed(2)}</div>
+                        <div className="col">
+                          {new Date(trade.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-trades">
+                    <p>No trades yet. Start trading to see your history here!</p>
+                  </div>
+                )}
               </div>
             </div>
             </>
@@ -978,11 +1360,17 @@ function QuoteViewer() {
           color: #6b7280;
         }
 
+        .order-buttons {
+          display: flex;
+          gap: 12px;
+        }
+
         .place-order-btn {
-          width: 100%;
+          flex: 1;
           padding: 12px;
           border: none;
           border-radius: 8px;
+          font-size: 16px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -995,6 +1383,15 @@ function QuoteViewer() {
 
         .buy-btn:hover {
           background: #16a34a;
+        }
+
+        .sell-btn {
+          background: #ef4444;
+          color: white;
+        }
+
+        .sell-btn:hover {
+          background: #dc2626;
         }
 
         .section {
@@ -1149,6 +1546,70 @@ function QuoteViewer() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
+        }
+
+        .trade-history {
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .trades-table .table-header {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1.5fr;
+          gap: 20px;
+          padding: 15px 20px;
+          background: #f3f4f6;
+          font-weight: 600;
+          color: #374151;
+          font-size: 14px;
+        }
+
+        .trades-table .table-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1.5fr;
+          gap: 20px;
+          padding: 20px;
+          border-bottom: 1px solid #e5e7eb;
+          align-items: center;
+        }
+
+        .trades-table .table-row:last-child {
+          border-bottom: none;
+        }
+
+        .trade-type {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .trade-type.buy {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .trade-type.sell {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .symbol {
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .no-trades {
+          text-align: center;
+          padding: 40px 20px;
+          color: #6b7280;
+        }
+
+        .no-trades p {
+          margin: 0;
+          font-size: 16px;
         }
 
         /* Right Section Styles */

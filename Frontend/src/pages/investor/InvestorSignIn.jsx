@@ -27,7 +27,7 @@ const InvestorSignIn = () => {
   const [signupError, setSignupError] = useState('')
 
   // Configure axios base URL
-  const API_BASE_URL = 'http://localhost:8000/api'
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_ROUTE
 
   // Handle signin form input changes
   const handleSigninChange = (e) => {

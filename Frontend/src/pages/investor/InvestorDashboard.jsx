@@ -14,7 +14,7 @@ const InvestorDashboard = () => {
   const [userBookings, setUserBookings] = useState([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
 
-  const API_BASE_URL = 'http://localhost:8000/api'
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_ROUTE
 
   const filterCategories = [
     { id: 'Stocks', name: 'Stocks', icon: '📈' },
@@ -171,6 +171,7 @@ const InvestorDashboard = () => {
           </Link>
           <nav className="nav-menu">
             {/* <a href="#dashboard" className="nav-link active">Dashboard</a> */}
+            <a href='/demo-trading' className='nav-link'>Demo-Trading</a>
             <a href="#my-sessions" className="nav-link" onClick={handleMySessionsClick}>My Sessions</a>
             <a href="#mentors" className="nav-link nav-mentors">Mentors</a>
           </nav>
